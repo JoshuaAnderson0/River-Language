@@ -4,3 +4,6 @@ pub mod value;
 pub mod vm;
 
 mod call_frame;
+
+#[cfg(test)]
+mod tests;

@@ -1,7 +1,7 @@
-use lighthouse::chunk::Chunk;
-use lighthouse::value::Value;
-use lighthouse::vm::VirtualMachine;
-use lighthouse::opcode;
+use virtual_machine::chunk::Chunk;
+use virtual_machine::value::Value;
+use virtual_machine::vm::VirtualMachine;
+use virtual_machine::opcode;
 
 fn main() {
     let mut vm: VirtualMachine = VirtualMachine::new();
