@@ -245,8 +245,9 @@ impl VirtualMachine {
     }
 
     fn op_call(&mut self) -> InstructionResult {
-        let index = self.read_arg();
-        self.push_call_frame(index);
+        let register_index = self.read_arg();
+        let chunk_index = self.get_register(register_index);
+        self.push_call_frame(chunk_index._value as usize);
         InstructionResult::Ok
     }
 

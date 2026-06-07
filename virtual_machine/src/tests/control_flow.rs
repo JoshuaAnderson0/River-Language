@@ -35,8 +35,11 @@ fn call_to_chunk_executes_callee() {
 
     let callee_idx = vm.push_chunk(callee);
 
-    let mut caller = Chunk::new("caller", 1);
-    caller.push_instruction(opcode::CALL).with_arguments(&[callee_idx]);
+    let mut caller = Chunk::new("caller", 2);
+    let callee_idx_const = caller.push_constant(Value::new_uint(callee_idx));
+    let chunk_reg = 1;
+    caller.push_instruction(opcode::CONSTANT).with_arguments(&[callee_idx_const, chunk_reg]);
+    caller.push_instruction(opcode::CALL).with_arguments(&[chunk_reg]);
     caller.push_instruction(opcode::RETURN);
 
     // Act
@@ -58,9 +61,12 @@ fn call_after_return_continues_caller() {
 
     let callee_idx = vm.push_chunk(callee);
 
-    let mut caller = Chunk::new("caller", 1);
+    let mut caller = Chunk::new("caller", 2);
     let caller_const = caller.push_constant(Value::new_int(200));
-    caller.push_instruction(opcode::CALL).with_arguments(&[callee_idx]);
+    let callee_idx_const = caller.push_constant(Value::new_uint(callee_idx));
+    let chunk_reg = 1;
+    caller.push_instruction(opcode::CONSTANT).with_arguments(&[callee_idx_const, chunk_reg]);
+    caller.push_instruction(opcode::CALL).with_arguments(&[chunk_reg]);
     caller.push_instruction(opcode::CONSTANT).with_arguments(&[caller_const, dest_reg]);
     caller.push_instruction(opcode::RETURN);
 
@@ -76,6 +82,7 @@ fn call_with_nested_calls_unwinds_correctly() {
     // Arrange
     let mut vm = VirtualMachine::new();
     let dest_reg = 0;
+    let chunk_reg = 1;
 
     let mut inner = Chunk::new("inner", 1);
     let inner_const = inner.push_constant(Value::new_int(1));
@@ -84,14 +91,18 @@ fn call_with_nested_calls_unwinds_correctly() {
 
     let inner_idx = vm.push_chunk(inner);
 
-    let mut middle = Chunk::new("middle", 1);
-    middle.push_instruction(opcode::CALL).with_arguments(&[inner_idx]);
+    let mut middle = Chunk::new("middle", 2);
+    let inner_idx_const = middle.push_constant(Value::new_uint(inner_idx));
+    middle.push_instruction(opcode::CONSTANT).with_arguments(&[inner_idx_const, chunk_reg]);
+    middle.push_instruction(opcode::CALL).with_arguments(&[chunk_reg]);
     middle.push_instruction(opcode::RETURN);
 
     let middle_idx = vm.push_chunk(middle);
 
-    let mut outer = Chunk::new("outer", 1);
-    outer.push_instruction(opcode::CALL).with_arguments(&[middle_idx]);
+    let mut outer = Chunk::new("outer", 2);
+    let middle_idx_const = outer.push_constant(Value::new_uint(middle_idx));
+    outer.push_instruction(opcode::CONSTANT).with_arguments(&[middle_idx_const, chunk_reg]);
+    outer.push_instruction(opcode::CALL).with_arguments(&[chunk_reg]);
     outer.push_instruction(opcode::RETURN);
 
     // Act
@@ -105,6 +116,7 @@ fn call_multiple_sequential_executes_all() {
     // Arrange
     let mut vm = VirtualMachine::new();
     let dest_reg = 0;
+    let chunk_reg = 1;
 
     let mut func_a = Chunk::new("func_a", 1);
     let func_a_const = func_a.push_constant(Value::new_int(10));
@@ -120,10 +132,14 @@ fn call_multiple_sequential_executes_all() {
 
     let func_b_idx = vm.push_chunk(func_b);
 
-    let mut main = Chunk::new("main", 1);
+    let mut main = Chunk::new("main", 2);
     let main_const = main.push_constant(Value::new_int(30));
-    main.push_instruction(opcode::CALL).with_arguments(&[func_a_idx]);
-    main.push_instruction(opcode::CALL).with_arguments(&[func_b_idx]);
+    let func_a_idx_const = main.push_constant(Value::new_uint(func_a_idx));
+    let func_b_idx_const = main.push_constant(Value::new_uint(func_b_idx));
+    main.push_instruction(opcode::CONSTANT).with_arguments(&[func_a_idx_const, chunk_reg]);
+    main.push_instruction(opcode::CALL).with_arguments(&[chunk_reg]);
+    main.push_instruction(opcode::CONSTANT).with_arguments(&[func_b_idx_const, chunk_reg]);
+    main.push_instruction(opcode::CALL).with_arguments(&[chunk_reg]);
     main.push_instruction(opcode::CONSTANT).with_arguments(&[main_const, dest_reg]);
     main.push_instruction(opcode::RETURN);
 
@@ -140,6 +156,7 @@ fn call_to_chunk_isolates_registers() {
     let mut vm = VirtualMachine::new();
     let reg_a = 0;
     let reg_b = 1;
+    let chunk_reg = 2;
 
     let mut callee = Chunk::new("callee", 2);
     let callee_const = callee.push_constant(Value::new_int(999));
@@ -149,12 +166,14 @@ fn call_to_chunk_isolates_registers() {
 
     let callee_idx = vm.push_chunk(callee);
 
-    let mut caller = Chunk::new("caller", 2);
+    let mut caller = Chunk::new("caller", 3);
     let caller_const_a = caller.push_constant(Value::new_int(111));
     let caller_const_b = caller.push_constant(Value::new_int(222));
+    let callee_idx_const = caller.push_constant(Value::new_uint(callee_idx));
     caller.push_instruction(opcode::CONSTANT).with_arguments(&[caller_const_a, reg_a]);
     caller.push_instruction(opcode::CONSTANT).with_arguments(&[caller_const_b, reg_b]);
-    caller.push_instruction(opcode::CALL).with_arguments(&[callee_idx]);
+    caller.push_instruction(opcode::CONSTANT).with_arguments(&[callee_idx_const, chunk_reg]);
+    caller.push_instruction(opcode::CALL).with_arguments(&[chunk_reg]);
     caller.push_instruction(opcode::RETURN);
 
     // Act
@@ -171,22 +190,27 @@ fn call_with_deep_stack_unwinds_all() {
     let mut vm = VirtualMachine::new();
     let depth = 9;
     let dest_reg = 0;
+    let chunk_reg = 1;
 
     for i in 0..depth {
-        let mut chunk = Chunk::new("deep", 1);
+        let mut chunk = Chunk::new("deep", 2);
         let chunk_const = chunk.push_constant(Value::new_int(i as isize));
         chunk.push_instruction(opcode::CONSTANT).with_arguments(&[chunk_const, dest_reg]);
         if i < depth - 1 {
             let next_idx = i + 1;
-            chunk.push_instruction(opcode::CALL).with_arguments(&[next_idx]);
+            let next_idx_const = chunk.push_constant(Value::new_uint(next_idx));
+            chunk.push_instruction(opcode::CONSTANT).with_arguments(&[next_idx_const, chunk_reg]);
+            chunk.push_instruction(opcode::CALL).with_arguments(&[chunk_reg]);
         }
         chunk.push_instruction(opcode::RETURN);
         vm.push_chunk(chunk);
     }
 
-    let first_chunk_idx = 0;
-    let mut entry = Chunk::new("entry", 1);
-    entry.push_instruction(opcode::CALL).with_arguments(&[first_chunk_idx]);
+    let first_chunk_idx: usize = 0;
+    let mut entry = Chunk::new("entry", 2);
+    let first_idx_const = entry.push_constant(Value::new_uint(first_chunk_idx));
+    entry.push_instruction(opcode::CONSTANT).with_arguments(&[first_idx_const, chunk_reg]);
+    entry.push_instruction(opcode::CALL).with_arguments(&[chunk_reg]);
     entry.push_instruction(opcode::RETURN);
 
     // Act

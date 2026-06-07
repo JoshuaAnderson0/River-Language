@@ -56,15 +56,25 @@ fn main() {
     let print_chunk_index: usize = vm.push_chunk(print_chunk);
 
     // main chunk
-    let mut main_chunk: Chunk = Chunk::new("main", 0);
+    let mut main_chunk: Chunk = Chunk::new("main", 2);
+
+    let index: usize = main_chunk.push_constant(Value::new_uint(add_chunk_index));
+    main_chunk
+        .push_instruction(opcode::CONSTANT)
+        .with_arguments(&[index, 0]);
 
     main_chunk
         .push_instruction(opcode::CALL)
-        .with_arguments(&[add_chunk_index]);
+        .with_arguments(&[index]);
+
+    let index: usize = main_chunk.push_constant(Value::new_uint(print_chunk_index));
+    main_chunk
+        .push_instruction(opcode::CONSTANT)
+        .with_arguments(&[index, 1]);
 
     main_chunk
         .push_instruction(opcode::CALL)
-        .with_arguments(&[print_chunk_index]);
+        .with_arguments(&[index]);
 
     main_chunk.push_instruction(opcode::RETURN);
 

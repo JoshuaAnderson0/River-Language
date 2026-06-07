@@ -1,8 +1,16 @@
+// ARGUMENTS: (none)
 pub const RETURN: u8 = 0;
+
+// ARGUMENTS: register_index (pointing to chunk index)
 pub const CALL: u8 = 1;
+
+// ARGUMENTS: register_index
 pub const PRINT: u8 = 2;
+
+// ARGUMENTS: constant_index, destination_register_index
 pub const CONSTANT: u8 = 3;
 
+// ARGUMENTS: left_register_index, right_register_index, destination_register_index
 pub const ADD_INT: u8 = 4;
 pub const SUB_INT: u8 = 5;
 pub const MUL_INT: u8 = 6;
