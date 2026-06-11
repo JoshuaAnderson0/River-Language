@@ -1,0 +1,5 @@
+﻿// No namespace, implicit via build file and folder name
+
+fib :: (x) 
+    | x <= 1 -> 1
+    | x -> fib(x - 1) + fib(x - 2)
