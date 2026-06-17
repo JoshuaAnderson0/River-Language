@@ -1,5 +1,0 @@
-﻿using Math v1.0
-
-Main := () -> {
-  // Do nothing, just here to showcase
-}

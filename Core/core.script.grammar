@@ -1,0 +1,26 @@
+// Core script grammar — vertical slice.
+// Statements are newline-terminated; numeric expressions with precedence via %N.
+
+PROGRAM := @STATEMENT*
+
+STATEMENT := @BINDING
+STATEMENT := @PRINT
+
+BINDING := @IDENTIFIER:name ':=' @EXPR:value $NEWLINE
+PRINT   := print '(' @EXPR:value ')' $NEWLINE
+
+EXPR := @ADD
+EXPR := @SUB
+EXPR := @MUL
+EXPR := @DIV
+EXPR := @PAREN
+EXPR := @NUMBER
+EXPR := @FLOAT
+EXPR := @IDENTIFIER
+
+ADD := @EXPR:lhs '+' @EXPR:rhs   %left %1
+SUB := @EXPR:lhs '-' @EXPR:rhs   %left %1
+MUL := @EXPR:lhs '*' @EXPR:rhs   %left %2
+DIV := @EXPR:lhs '/' @EXPR:rhs   %left %2
+
+PAREN := '(' @EXPR ')'

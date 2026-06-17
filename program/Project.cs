@@ -39,7 +39,7 @@ public class Project
                 buildFiles,
                 grammarFiles,
                 scriptFiles,
-                buildFiles));
+                profilesToBuild: []));
     }
 
     public static List<string> GetFilesRecursive(string path, string pattern)
@@ -57,21 +57,38 @@ public class Project
         return this;
     }
 
-    public Result Build()
+    /// <summary>
+    /// Resolves the build files selected by the requested profiles, or the project's
+    /// single build file when no profiles were specified.
+    /// </summary>
+    public Result<List<string>> ResolveBuildFiles()
     {
-        if (ProfilesToBuild.Count == 0 && BuildFiles.Count != 1)
+        if (ProfilesToBuild.Count == 0)
         {
-            return Result.Error(
-                $"No build profiles specified and project contains {BuildFiles.Count} build files. " +
-                "Either specify build profiles or ensure exactly one .build file exists.");
+            return BuildFiles.Count == 1
+                ? Result<List<string>>.Ok([BuildFiles[0]])
+                : Result<List<string>>.Error(
+                    $"No build profiles specified and project contains {BuildFiles.Count} build files. " +
+                    "Either specify build profiles or ensure exactly one .build file exists.");
         }
 
         List<string> missingProfiles = ProfilesToBuild
-            .Where(profile => BuildFiles.All(f => Path.GetFileName(f).Split(".")[0] != profile))
+            .Where(profile => BuildFiles.All(f => ProfileName(f) != profile))
             .ToList();
 
-        return missingProfiles.Count > 0 
-            ? Result.Error($"Build profiles not found in project: {string.Join(", ", missingProfiles)}") 
-            : Result.Ok();
+        if (missingProfiles.Count > 0)
+        {
+            return Result<List<string>>.Error(
+                $"Build profiles not found in project: {string.Join(", ", missingProfiles)}");
+        }
+
+        List<string> selected = ProfilesToBuild
+            .Select(profile => BuildFiles.First(f => ProfileName(f) == profile))
+            .ToList();
+
+        return Result<List<string>>.Ok(selected);
     }
+
+    private static string ProfileName(string buildFilePath) =>
+        Path.GetFileName(buildFilePath).Split(".")[0];
 }

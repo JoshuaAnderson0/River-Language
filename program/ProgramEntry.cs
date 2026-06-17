@@ -23,16 +23,19 @@ public static class ProgramEntry
 
     private static void BuildProject(BuildCommand buildCommand)
     {
-        Result result = Project
+        Result<int> result = Project
             .FromDirectory(buildCommand.ProjectPath)
-            .FlatMap(project => project
-                .WithBuildProfiles(buildCommand.BuildProfiles)
-                .Build());
-        
+            .FlatMap(project => Compilation.Run(
+                project.WithBuildProfiles(buildCommand.BuildProfiles),
+                buildCommand.Backend));
+
         if (!result.IsOk)
         {
-            Console.WriteLine(result.Message);
+            Console.Error.WriteLine(result.Message);
+            Environment.ExitCode = 1;
             return;
         }
+
+        Environment.ExitCode = result.Unwrap();
     }
 }

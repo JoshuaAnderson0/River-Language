@@ -6,6 +6,7 @@ public class BuildCommand : ProgramCommand
 {
     public required string ProjectPath;
     public List<string> BuildProfiles = [];
+    public BackendKind Backend = BackendKind.Vm;
 }
 
 public class ProgramOptions
@@ -48,14 +49,43 @@ public class ProgramOptionsParser
         }
 
         string projectPath = Args[1];
-        List<string> buildProfiles = Args.Length > 2
-            ? Args[2..].ToList()
-            : [];
+        List<string> buildProfiles = [];
+        BackendKind backend = BackendKind.Vm;
+
+        for (int index = 2; index < Args.Length; index++)
+        {
+            if (Args[index] == "--backend")
+            {
+                if (index + 1 >= Args.Length)
+                {
+                    return BuildError<ProgramCommand>("--backend requires a value: vm or asm.");
+                }
+
+                index++;
+
+                switch (Args[index].ToLowerInvariant())
+                {
+                    case "vm":
+                        backend = BackendKind.Vm;
+                        break;
+                    case "asm":
+                        backend = BackendKind.Asm;
+                        break;
+                    default:
+                        return BuildError<ProgramCommand>($"Unknown backend: {Args[index]} (expected vm or asm).");
+                }
+            }
+            else
+            {
+                buildProfiles.Add(Args[index]);
+            }
+        }
 
         return Result<ProgramCommand>.Ok(new BuildCommand
         {
             ProjectPath = projectPath,
-            BuildProfiles = buildProfiles
+            BuildProfiles = buildProfiles,
+            Backend = backend
         });
     }
 
@@ -72,6 +102,11 @@ public class ProgramOptionsParser
                   Arguments:
                     *project-path      System path of project to compile.
                      build-profiles    Space-separated list of project build profiles to compile
+
+                  Options:
+                     --backend <vm|asm>    Code generation backend (default: vm).
+                                           vm  - emit bytecode and execute immediately
+                                           asm - emit native x64 assembly and link an executable
             """;
     }
     

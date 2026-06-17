@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Safety\Safety.csproj" />
+    <ProjectReference Include="..\Diagnostics\Diagnostics.csproj" />
+    <ProjectReference Include="..\Grammar\Grammar.csproj" />
+    <ProjectReference Include="..\Lexing\Lexing.csproj" />
+    <ProjectReference Include="..\Parsing\Parsing.csproj" />
+    <ProjectReference Include="..\Ir\Ir.csproj" />
+    <ProjectReference Include="..\Bytecode\Bytecode.csproj" />
+    <ProjectReference Include="..\Vm\Vm.csproj" />
+    <ProjectReference Include="..\Asm\Asm.csproj" />
+    <ProjectReference Include="..\Assembler\Assembler.csproj" />
+    <ProjectReference Include="..\Linker\Linker.csproj" />
+    <ProjectReference Include="..\Program\Program.csproj" />
+  </ItemGroup>
+
+</Project>

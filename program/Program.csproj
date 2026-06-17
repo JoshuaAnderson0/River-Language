@@ -8,7 +8,21 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <Content Include="..\Core\**\*.grammar" Link="Core\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\Safety\Safety.csproj" />
+      <ProjectReference Include="..\Diagnostics\Diagnostics.csproj" />
+      <ProjectReference Include="..\Grammar\Grammar.csproj" />
+      <ProjectReference Include="..\Lexing\Lexing.csproj" />
+      <ProjectReference Include="..\Parsing\Parsing.csproj" />
+      <ProjectReference Include="..\Ir\Ir.csproj" />
+      <ProjectReference Include="..\Bytecode\Bytecode.csproj" />
+      <ProjectReference Include="..\Vm\Vm.csproj" />
+      <ProjectReference Include="..\Asm\Asm.csproj" />
+      <ProjectReference Include="..\Assembler\Assembler.csproj" />
+      <ProjectReference Include="..\Linker\Linker.csproj" />
     </ItemGroup>
 
 </Project>

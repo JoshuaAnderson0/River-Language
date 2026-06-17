@@ -1,0 +1,22 @@
+// Vertical slice: ints, floats, precedence, parens, truncating division,
+// promotion, and rebinding.
+
+x := 1 + 2 * 3
+y := (1 + 2) * 3
+print(x)
+print(y)
+
+half := 1 / 2
+print(half)
+
+f := 1.5 + 2.25
+print(f)
+
+mixed := x + 0.5
+print(mixed)
+
+x := x * 2
+print(x)
+
+third := 1.0 / 3
+print(third)

@@ -1,5 +1,8 @@
-﻿VERSION := v$NUMBER
-USING := using$IDENTIFIER($VERSION?)
+// Core build-file grammar — vertical slice.
+// A build file declares an optional package name and dependencies.
+// VERSION (v1.0) is a builtin lexer class, active only when a grammar references it.
 
-// These 2 grammar atoms literally get turned into nodes once parsed with NUMBER and IDENTIFIER and VERSION as fields of those nodes
-// For simplicity NUMBER and IDENTIFIER have been omitted
+BUILD := @PACKAGE? @USING*
+
+PACKAGE := package @IDENTIFIER:name $NEWLINE
+USING   := using @IDENTIFIER:name @VERSION:version? $NEWLINE

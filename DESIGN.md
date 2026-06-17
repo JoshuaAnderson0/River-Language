@@ -22,23 +22,30 @@ Grammar atoms use BNF-inspired syntax with extensions for capture semantics.
 
 `@NAME:alias` references and captures with a custom field name.
 
-Bare text represents literals: `using`, `v`, `(`.
+Bare text represents literals, and must be identifier-like: `using`, `print`, `package`. Literals containing meta-characters must be single-quoted: `'('`, `':='`, `'+'`. (Unquoted `(` is the grouping operator.) An identifier-like literal becomes a reserved word: `print` cannot be used as a variable name.
 
-Grouping uses parentheses. `?` marks optional, `*` marks zero or more, `+` marks one or more. Alternation uses `|` inline or as separate rules for the same atom.
+Grouping uses parentheses. `?` marks optional, `*` marks zero or more, `+` marks one or more. Alternation uses `|` inline or as separate rules for the same atom. Captures inside groups are not yet supported; extract the group into its own atom instead.
+
+Captured values become fields on the produced node. Unaliased captures auto-name from the referenced atom (`@STATEMENT*` → `statement` list field); when auto-names collide in one production they get positional suffixes (`@EXPR '+' @EXPR` → `expr0`, `expr1`). A production whose only capture is unaliased, unquantified, and alone (everything else discarded) passes the child node through instead of wrapping it — this is how `EXPR` wrapper rules and parens vanish from the tree.
+
+Terminal classes are built into the lexer and referenced by name: `NUMBER`, `FLOAT`, `IDENTIFIER`, `VERSION` (`v1.0`), `NEWLINE`. A class is only lexed when some active grammar rule references it — `VERSION` exists for build files without polluting script lexing. The lexer is otherwise grammar-driven: literal terminals are collected from the active grammar, symbol literals match longest-first (`:=` before `:`), and identifier-like literals are checked after a full identifier scan (`print` is a keyword, `printx` is an IDENTIFIER). Statements are newline-terminated via `$NEWLINE`; the lexer collapses blank lines and injects a final NEWLINE so trailing newlines are optional.
 
 Precedence uses annotations rather than stratified grammar. The `%N` suffix declares precedence level where higher numbers bind tighter. Associativity is declared with `%left`, `%right`, or `%none`.
 
-Example:
+Example (from the implemented core script grammar — each operator is its own atom so later
+stages can switch on the node's atom name rather than a production index):
 ```
-EXPR := @EXPR $PLUS @EXPR   %left %1
-EXPR := @EXPR $MINUS @EXPR  %left %1
-EXPR := @EXPR $TIMES @EXPR  %left %2
-EXPR := @EXPR $DIV @EXPR    %left %2
-EXPR := @NUMBER
-EXPR := $LPAREN @EXPR $RPAREN
+EXPR := @ADD | @SUB | @MUL | @DIV | @PAREN | @NUMBER | @FLOAT | @IDENTIFIER
+
+ADD := @EXPR:lhs '+' @EXPR:rhs   %left %1
+SUB := @EXPR:lhs '-' @EXPR:rhs   %left %1
+MUL := @EXPR:lhs '*' @EXPR:rhs   %left %2
+DIV := @EXPR:lhs '/' @EXPR:rhs   %left %2
+
+PAREN := '(' @EXPR ')'
 ```
 
-The parser uses these annotations to resolve shift-reduce conflicts during table construction.
+The parser uses these annotations to resolve shift-reduce conflicts during table construction. Terminals inherit precedence/associativity from the annotated productions that use them; assigning the same terminal conflicting levels is a grammar error. A production without an explicit `%N` falls back to its last terminal's level (yacc convention).
 
 ## Transforms and Reduce Functions
 
@@ -89,6 +96,8 @@ Because reduce functions operate at the AST level, they can perform arbitrary tr
 ## Parser
 
 The compiler uses an LALR(1) parser. This provides fast O(n) parsing with compact tables and good cache locality. LALR is battle-tested in tools like yacc and bison.
+
+Tables are built by canonical LR(1) construction followed by merging states with identical cores — simple and exactly correct at the grammar sizes involved. Reduce-reduce conflicts introduced by merging are reported, never silently resolved. EBNF sugar (`?`, `*`, `+`, groups) desugars into synthetic left-recursive productions (`ATOM#repN`, `ATOM#optN`) whose semantic actions thread list/optional values back to the parent node's fields.
 
 Grammar validation occurs at three levels. Before table generation: check for undefined symbols, unreachable rules, unused terminals. During table construction: detect shift-reduce and reduce-reduce conflicts, verify completeness and reachability. At runtime: unit tests verify correct parsing of known inputs.
 
@@ -229,10 +238,14 @@ Deferred for the vertical slice. Future work includes cached LR tables keyed by 
 
 ## Vertical Slice
 
-The initial implementation targets a minimal language to exercise the full pipeline.
+**Status: implemented.** `build <project-path> [profiles...] --backend <vm|asm>`.
 
-Supported features: integer literals, float literals, binary operators (`+`, `-`, `*`, `/`), variable binding with `:=`, and a `print` builtin.
+Supported features: integer literals, float literals, binary operators (`+`, `-`, `*`, `/`), variable binding with `:=` (re-binding allocates a fresh slot, Rust let-style shadowing), and a `print` builtin. Mixed int/float arithmetic promotes to float; `int / int` truncates toward zero.
 
-Not included in vertical slice: functions, control flow, user-defined types.
+Not included in vertical slice: functions, control flow, user-defined types, dependencies (`using` reports "not yet supported"), reduce functions/transforms, multiple script files.
 
-This scope is sufficient to validate: lexer, LALR parser, AST construction, IR generation, bytecode emission, and VM execution.
+The slice validates the full pipeline: grammar files (`Core/core.build.grammar`, `Core/core.script.grammar`) → grammar meta-parser → EBNF desugaring → LALR(1) table construction → grammar-driven lexer → table-driven parser → typed IR → both backends. `Examples/Arithmetic` is the reference project; both backends print identical output for it.
+
+**Backends.** The VM backend emits bytecode (pooled constants, u16 operands) and executes immediately in a stack-machine interpreter. The asm backend emits a MASM-style listing plus a runnable PE32+ executable at `out/<package>.asm|.exe`, using the compiler's **own toolchain**: a hand-written x64 encoder (fixed-size encodings over a closed instruction set) and a hand-written PE32+ linker (.text/.rdata/.idata, imports `msvcrt!printf` + `kernel32!ExitProcess`, entry point is generated code — msvcrt self-initializes, no CRT startup, no external assembler or linker, no ASLR so only rip-relative fixups exist). Codegen is stack-machine style on the hardware stack; operand depth is statically known, so printf call sites reserve 32/40 bytes to keep RSP 16-aligned, and Win64 varargs floats are duplicated in both `xmm1` and `rdx`.
+
+**Print parity.** The asm backend prints via `printf("%lld\n")` / `printf("%g\n")`; the VM emulates those formats exactly (invariant int formatting; G6 with printf-style exponent rendering). Known divergences, accepted for the slice: msvcrt renders inf/NaN as `1.#INF`-style; line endings differ (msvcrt text mode emits CRLF, the VM emits LF); integer division by zero is a clean runtime error in the VM but a hardware #DE in the exe.

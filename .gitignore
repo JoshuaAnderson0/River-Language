@@ -48,3 +48,6 @@ coverage/
 # Publish output
 publish/
 **/publish/
+
+# Compiled example output (asm backend artifacts)
+Examples/**/out/

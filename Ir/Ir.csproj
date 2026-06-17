@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Safety\Safety.csproj" />
+    <ProjectReference Include="..\Diagnostics\Diagnostics.csproj" />
+    <ProjectReference Include="..\Grammar\Grammar.csproj" />
+    <ProjectReference Include="..\Lexing\Lexing.csproj" />
+    <ProjectReference Include="..\Parsing\Parsing.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

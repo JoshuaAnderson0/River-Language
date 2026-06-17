@@ -1,4 +1,0 @@
-﻿// Maths lib implicitly included, no need for extra using statements
-
-fib_of_10 := Math.Fib(10)
-print(fib_of_10)
